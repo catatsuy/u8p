@@ -11,10 +11,13 @@ const (
 )
 
 func Find(a string, l int) (int, error) {
-	if len(a) == 0 || len(a) <= l {
-		return 0, fmt.Errorf("invalid length")
+	if len(a) == 0 {
+		return 0, nil
 	}
-	if l <= 4 {
+	if l <= 3 {
+		return 0, fmt.Errorf("l must be greater than 3")
+	}
+	if len(a) == 0 || len(a) <= l {
 		return 0, fmt.Errorf("invalid length")
 	}
 	for i := l - 1; i >= l-4; i-- {
