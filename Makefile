@@ -9,6 +9,10 @@ test:
 fuzz:
 	go test -fuzztime 10s  -fuzz .
 
+.PHONY: bench
+bench:
+	go test -bench . -benchmem
+
 .PHONY: vet
 vet:
 	go vet ./...

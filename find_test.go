@@ -1,6 +1,8 @@
 package u8p_test
 
 import (
+	"fmt"
+	"math/rand/v2"
 	"testing"
 	"unicode/utf8"
 
@@ -109,4 +111,104 @@ func FuzzFind(f *testing.F) {
 			t.Fatalf("invalid utf8")
 		}
 	})
+}
+
+func generateUTF8String(length int) string {
+	// ASCII, Cyrillic, Hiragana, and Emoji ranges in Unicode
+	var ranges = [][]int{
+		{0x0020, 0x007F},   // ASCII
+		{0x0400, 0x04FF},   // Cyrillic
+		{0x3040, 0x309F},   // Hiragana
+		{0x1F600, 0x1F64F}, // Emoticons
+	}
+
+	b := make([]rune, length)
+	for i := range b {
+		r := ranges[rand.IntN(len(ranges))]
+		b[i] = rune(r[0] + rand.IntN(r[1]-r[0]+1))
+	}
+	return string(b)
+}
+
+func getByteLengthOfRuneSlice(s string, runeCount int) int {
+	runes := []rune(s)
+	if runeCount > len(runes) {
+		return -1
+	}
+	return len(string(runes[:runeCount]))
+}
+
+func calculateUTF8ByteLengthForRunes(s string, maxRunes int) int {
+	var size, totalSize int
+	for i := 0; i < maxRunes && len(s) > totalSize; i++ {
+		_, size = utf8.DecodeRuneInString(s[totalSize:])
+		totalSize += size
+	}
+	return totalSize
+}
+
+func locateRuneAtPosition(s string, position int) int {
+	for idx := range s {
+		if idx == position {
+			return idx
+		}
+	}
+
+	return -1
+}
+
+func BenchmarkFindUTF8Sizes(b *testing.B) {
+	sizes := []int{100, 1000, 10000, 100000}
+	for _, size := range sizes {
+		b.Run(fmt.Sprintf("Size%d", size), func(b *testing.B) {
+			testString := generateUTF8String(size)
+			l := len(testString) / 4
+			b.ResetTimer()
+			for i := 0; i < b.N; i++ {
+				u8p.Find(testString, l)
+			}
+		})
+	}
+}
+
+func BenchmarkGetByteLengthOfRuneSlice(b *testing.B) {
+	sizes := []int{100, 500, 1000, 5000, 10000}
+	for _, size := range sizes {
+		b.Run(fmt.Sprintf("Size%d", size), func(b *testing.B) {
+			testString := generateUTF8String(size)
+			runeCount := size / 10
+			b.ResetTimer()
+			for i := 0; i < b.N; i++ {
+				getByteLengthOfRuneSlice(testString, runeCount)
+			}
+		})
+	}
+}
+
+func BenchmarkCalculateUTF8ByteLengthForRunes(b *testing.B) {
+	sizes := []int{100, 500, 1000, 5000, 10000}
+	for _, size := range sizes {
+		b.Run(fmt.Sprintf("Size%d", size), func(b *testing.B) {
+			testString := generateUTF8String(size)
+			runeCount := size / 10
+			b.ResetTimer()
+			for i := 0; i < b.N; i++ {
+				calculateUTF8ByteLengthForRunes(testString, runeCount)
+			}
+		})
+	}
+}
+
+func BenchmarkLocateRuneAtPosition(b *testing.B) {
+	sizes := []int{100, 500, 1000, 5000, 10000}
+	for _, size := range sizes {
+		b.Run(fmt.Sprintf("Size%d", size), func(b *testing.B) {
+			testString := generateUTF8String(size)
+			targetPosition := size / 10
+			b.ResetTimer()
+			for i := 0; i < b.N; i++ {
+				locateRuneAtPosition(testString, targetPosition)
+			}
+		})
+	}
 }
